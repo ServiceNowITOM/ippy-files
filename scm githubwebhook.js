@@ -1,6 +1,13 @@
 var GitHubWebHookProcessor = Class.create();
 GitHubWebHookProcessor.prototype = Object.extendsObject(WebhookProcessor,{
 	
+	Check_Test: function(requestdata){
+	if (requestdata.zen){
+		return true
+		}
+	
+	},
+	
 	Get_Files: function(url, user, password){
 		var restMessage = new sn_ws.RESTMessageV2();
 		restMessage.setBasicAuth(user, password);
@@ -144,6 +151,24 @@ GitHubWebHookProcessor.prototype = Object.extendsObject(WebhookProcessor,{
 			mystory.query();
 			while (mystory.next()) {
 				if (mystory.sys_id){
+					mycommit.storytwo = mystory.sys_id;
+					mycommit.update();
+				}
+			}
+		}
+	},
+	
+	RelateIssue: function(commitID){
+		var mycommit = new GlideRecord('x_snc_ippy_github_scm_commits');
+		mycommit.get(commitID);
+		var myMessage = mycommit.message;
+		var messagesplit = myMessage.split(" ");
+		for (x = 0; x < messagesplit.length; x++) {
+			var mystory = new GlideRecord('x_snc_ippy_jira_issues');
+			mystory.addQuery('key', messagesplit[x]);
+			mystory.query();
+			while (mystory.next()) {
+				if (mystory.sys_id){
 					mycommit.story = mystory.sys_id;
 					mycommit.update();
 				}
@@ -216,6 +241,10 @@ GitHubWebHookProcessor.prototype = Object.extendsObject(WebhookProcessor,{
 	},
 	
 	process: function(){
+	
+	if (this.Check_Test(this.data)){
+		return "Test";
+	}
 		//Set ScratchPad Value
 	var myCommitJSON = this.data;
 
@@ -253,7 +282,8 @@ GitHubWebHookProcessor.prototype = Object.extendsObject(WebhookProcessor,{
 		this.Write_Files(files, Commit_sysID, owner, reponame, SHA);
 		
 	//Relate Story if needed
-	this.RelateStory(Commit_sysID);
+		this.RelateStory(Commit_sysID);
+		this.RelateIssue(Commit_sysID);
 	
 	}	
 	},
